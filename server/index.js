@@ -15,11 +15,21 @@ app.post('/todos', (req, res) => {
     var todo = new TodoModel({
         text: req.body.text
     });
+    //db save
     todo.save()
         .then(doc => res.send(doc))
         .catch(e => res.status(400).send(e));
 });
 
+app.get('/todos', (req, res) => {
+    TodoModel.find()
+        .then(docs => res.status(200).send({
+            data: docs
+        }))
+        .catch(e => res.status(400).send({
+            error: e
+        }));
+});
 
 app.listen(port, () => console.log(`Server is running on port ${port}`));
 
