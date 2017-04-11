@@ -40,8 +40,8 @@ app.get('/todos/:id', (req, res) => {
     if (!ObjectID.isValid(id)) {
         return res.status(404).send({
             error: {
-                id: null,
-                msg: `Todo ID ${id} not valid`
+                id: id,
+                msg: `Todo is not valid`
             }
         });
     }
@@ -53,22 +53,17 @@ app.get('/todos/:id', (req, res) => {
             if (!doc) {
                 return res.status(404).send({
                     error: {
-                        id: null,
                         msg: `Todo ID ${id} was not found`
                     }
                 });
             }
 
             return res.status(200).send({
-                data: {
-                    id: doc,
-                    msg: `Todo ID ${id} successfuly found!`
-                }
+                data: doc
             });
         })
         .catch(e => res.status(400).send({
             error: {
-                id: null,
                 msg: `Error in db!`
             }
         }));
