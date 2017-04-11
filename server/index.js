@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 
+const { ObjectID } = require('mongodb');
 const { Mongoose } = require('./db/mongoose');
 const { TodoModel } = require('./model/todo-model');
 const { UserModel } = require('./model/user-model');
@@ -31,10 +32,53 @@ app.get('/todos', (req, res) => {
         }));
 });
 
+// ObjectId("58ec99b83f48890a683a50a6")
+app.get('/todos/:id', (req, res) => {
+    let id = req.params.id;
+
+    //check if ID is valid
+    if (!ObjectID.isValid(id)) {
+        return res.status(404).send({
+            error: {
+                id: null,
+                msg: `Todo ID ${id} not valid`
+            }
+        });
+    }
+
+    //query db
+    TodoModel.findById(id)
+        .then(doc => {
+            //check if doc was found
+            if (!doc) {
+                return res.status(404).send({
+                    error: {
+                        id: null,
+                        msg: `Todo ID ${id} was not found`
+                    }
+                });
+            }
+
+            return res.status(200).send({
+                data: {
+                    id: doc,
+                    msg: `Todo ID ${id} successfuly found!`
+                }
+            });
+        })
+        .catch(e => res.status(400).send({
+            error: {
+                id: null,
+                msg: `Error in db!`
+            }
+        }));
+});
+
+
 app.listen(port, () => console.log(`Server is running on port ${port}`));
 
 //es6 syntax
-module.exports = {app};
+module.exports = { app };
 
 // module.exports.app = app;
 // module.exports = {
