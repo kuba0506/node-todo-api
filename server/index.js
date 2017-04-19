@@ -125,7 +125,6 @@ app.patch('/todos/:id', (req, res) => {
         body.completed = false;
         body.completedAt = null;
     }
-    
     //update todo
     TodoModel.findByIdAndUpdate(id, { $set: body }, { new: true })
         .then(todo => {

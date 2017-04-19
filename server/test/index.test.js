@@ -7,8 +7,8 @@ const { TodoModel } = require('../model/todo-model');
 
 //fixtures
 const todos = [
-    { _id: new ObjectID(), text: 'First test todo' },
-    { _id: new ObjectID(), text: 'Second test todo' }
+    { _id: new ObjectID(), text: 'First test todo', completed: false },
+    { _id: new ObjectID(), text: 'Second test todo', completed: true, completedAt: 1231231 }
 ];
 
 describe('POST /todos', () => {
@@ -214,6 +214,79 @@ describe('DELETE /todos/:id', () => {
         //Act
         test(app)
             .delete(`${url}/${id}`)
+            .expect(404)
+            .end(done);
+    });
+});
+
+describe('PATCH /todos/id', () => {
+    beforeEach(done => {
+        TodoModel.insertMany(todos)
+            .then(() => done());
+    });
+
+    afterEach(done => {
+        TodoModel.remove({})  //wipe db
+            .then(() => done());
+    });
+    
+    it('should update the todo', done => {
+        //Assemble
+        url = '/todos';
+        id = todos[0]._id.toString();
+        let payload = {
+            text: "Change first",
+            completed: true
+        };
+        //Act
+        test(app)
+            .patch(`${url}/${id}`)
+            .send(payload)
+            //Assert
+            .expect(200)
+            .expect(todo => {
+                expect(todo.body.data.completedAt).toExist();
+                expect(todo.body.data.completedAt).toBeA('number');
+                expect(todo.body.data.text).toEqual(payload.text);
+                expect(todo.body.data.text).toEqual(payload.text);
+            })
+            .end(done);
+    });
+    it('should clear completedAt when completed is set to false', done => {
+        //Assemble
+        url = '/todos';
+        id = todos[1]._id.toString();
+        let payload = {
+            text: "Change second",
+            completed: false
+        };
+        //Act
+        test(app)
+            .patch(`${url}/${id}`)
+            .send(payload)
+            //Assert
+            .expect(200)
+            .expect(todo => {
+                expect(todo.body.data.completedAt).toBeFalsy();
+                expect(todo.body.data.completed).toEqual(payload.completed);
+                expect(todo.body.data.text).toEqual(payload.text);
+            })
+            .end(done);
+    });
+
+    it('should send 404 when id is not valid', done => {
+        //Assemble
+        url = '/todos';
+        id = 123123123;
+        let payload = {
+            text: "Change first",
+            completed: true
+        };
+        //Act
+        test(app)
+            .patch(`${url}/${id}`)
+            .send(payload)
+            //Assert
             .expect(404)
             .end(done);
     });
