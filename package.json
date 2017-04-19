@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha server/**/*.test.js",
-    "test:w": "nodemon --exec npm test"
+    "test:w": "nodemon --exec npm test",
+    "start": "nodemon server/index.js"
 
   },
   "keywords": [],

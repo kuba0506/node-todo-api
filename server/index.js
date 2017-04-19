@@ -69,6 +69,42 @@ app.get('/todos/:id', (req, res) => {
         }));
 });
 
+//remove
+app.delete('/todos/:id', (req, res) => {
+    let id = req.params.id;
+
+    //validate id -> send 404
+    if (!ObjectID.isValid(id)) {
+        return res.status(404).send({
+            error: `Todo ${id} is not valid`
+        });
+    }
+
+    //removeById
+    TodoModel.findByIdAndRemove(id)
+        //success
+        .then(todo => {
+            //check if todo was found
+            if (!todo) {
+                // if noc doc -> 404
+                return res.status(404).send({
+                    error: `Todo was not found!`
+                });
+            }
+
+            //if doc -> send 200
+            return res.status(200).send({
+                data: todo
+            });
+        })
+        //error -> send 400, empty body
+        .catch(e => {
+            return res.status(400).send({
+                error: `Db error!`
+            });
+        })
+});
+
 
 app.listen(port, () => console.log(`Server is running on port ${port}`));
 
