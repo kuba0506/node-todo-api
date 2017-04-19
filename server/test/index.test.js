@@ -151,3 +151,70 @@ describe('GET /todos/:id', () => {
             .end(done);
     });
 });
+
+describe('DELETE /todos/:id', () => {
+    var url, id;
+
+    beforeEach(done => {
+        TodoModel.insertMany(todos)
+            .then(() => done());
+    });
+
+    afterEach(done => {
+        TodoModel.remove({})  //wipe db
+            .then(() => done());
+    });
+
+    it('should remove valid todo', done => {
+        //Assemble
+        url = '/todos';
+        id = todos[1]._id.toString();
+
+        //Act
+        test(app)
+            .delete(`${url}/${id}`)
+            .expect(200)
+            .expect(res => {
+                //Assert
+                expect(res.body.data.text).toBe(todos[1].text);
+                expect(res.body.data._id).toBe(id);
+            })
+            .end((e, res) => {
+                if (e) {
+                    return done(e);
+                }
+                TodoModel.findById(id)
+                    .then(todo =>{
+                        expect(todo).toNotExist();
+                        done();
+                    })
+                    .catch(done);
+            });
+    });
+
+    it('should return 404 when todo not found', done => {
+        //Assemble
+        url = '/todos';
+        //fake invalid ID
+        id = todos[0]._id.toString().replace(id.substring(0,1), 'x');
+        
+        //Act
+        test(app)
+            .delete(`${url}/${id}`)
+            .expect(404)
+            .end(done);
+    });
+
+    it('should return 404 if ID is not valid', done => {
+        //Assemble
+        let msg = `Todo is not valid`;
+        url = '/todos';
+        id = 123;
+
+        //Act
+        test(app)
+            .delete(`${url}/${id}`)
+            .expect(404)
+            .end(done);
+    });
+});
