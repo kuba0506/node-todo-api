@@ -110,7 +110,7 @@ app.delete('/todos/:id', (req, res) => {
 //update 
 app.patch('/todos/:id', (req, res) => {
     let id = req.params.id,
-        body = _.pick(req.body, ['text', 'completed']) ; // pick extract only valid props
+        body = _.pick(req.body, ['text', 'completed']); // pick extract only valid props
 
     //validate id -> send 404
     if (!ObjectID.isValid(id)) {
@@ -132,9 +132,26 @@ app.patch('/todos/:id', (req, res) => {
             if (!todo) {
                 return res.status(404).send({ error: `Todo ${id} was not found` });
             }
-            return res.status(200).send({ data:todo })
+            return res.status(200).send({ data: todo })
         })
         .catch(e => res.status(400).send());
+});
+
+// POST /users
+app.post('/users', (req, res) => {
+    let userCredentials = _.pick(req.body, ['email', 'password']);
+    let user = new UserModel(userCredentials);
+
+    //User //model
+    //user //instance
+    // user.generateAuthToken
+
+    return user.save()
+                .then(user => {
+                    return user.generateAuthToken();
+                })
+                .then(token => res.status(200).header('x-auth', token).send(user))
+                .catch(e => res.status(400).send(e));
 });
 
 app.listen(port, () => console.log(`Server is running on port ${port}`));
