@@ -146,6 +146,8 @@ app.post('/users', (req, res) => {
     //User //model
     //user //instance
     // user.generateAuthToken
+    //1. hash password
+    //2. generate token
 
     return user.save()
         .then(user => {
@@ -154,24 +156,6 @@ app.post('/users', (req, res) => {
         .then(token => res.status(200).header('x-auth', token).send(user))
         .catch(e => res.status(400).send(e));
 });
-
-//custom middleware
-// const authenticate = (req, res, next) => {
-//     const token = req.header('x-auth'); //grabing a token
-
-//     //find in db and check if token is valid
-//     UserModel.findByToken(token)
-//         .then(user => {
-//             if (!user) {
-//                 return Promise.reject('User not found');
-//             }
-//             //add props to req object to use them later
-//             req.user = user;
-//             req.token = token;
-//             next();
-//         })
-//         .catch(e => res.status(401).send(e));
-// };
 
 app.get('/users/me', authenticate, (req, res) => {
     return res.status(200).send(req.user);

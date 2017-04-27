@@ -2,6 +2,7 @@ const Mongoose = require('mongoose');
 const Validator = require('validator');
 const jwt = require('jsonwebtoken');
 const _ = require('lodash');
+const bcrypt = require('bcryptjs');
 
 var UserSchema = new Mongoose.Schema({
     email: {
@@ -78,8 +79,26 @@ UserSchema.statics.findByToken = function (token) {
     });
 };
 
+//moongose middleware - set event handler before saving user
+UserSchema.pre('save', function (next) {
+    var user = this;
+
+    //check if password was modified
+    if (user.isModified('password')) {
+        // console.log(`Password before hashing: ${user.password}`);
+        bcrypt.genSalt(10, (e, salt) => {
+            bcrypt.hash(user.password, salt, (e, hash) => {
+                user.password = hash;
+                // console.log(`Password after hashing: ${user.password}`);
+                next();
+            });
+        });
+    } else {
+        next();
+    }
+});
+
 //User model
 var UserModel = Mongoose.model('UserModel', UserSchema);
 
-
-module.exports.UserModel = UserModel;
+module.exports = {UserSchema, UserModel};
