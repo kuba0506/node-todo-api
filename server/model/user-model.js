@@ -40,13 +40,14 @@ UserSchema.methods.toJSON = function () {
     return _.pick(userObject, ['_id', 'email']); //not include password or token array
 };
 
+//method to generate token for specific user
 UserSchema.methods.generateAuthToken = function () {
     var user = this;
     var access = 'auth';
     var token = jwt.sign({
        _id: user._id.toHexString(),
        access 
-    }, 'secert123').toString();
+    }, 'secret123').toString();
 
     //add token to user tokens array
     user.tokens.push({
@@ -55,12 +56,30 @@ UserSchema.methods.generateAuthToken = function () {
 
     //save db
     return user.save()
-        .then(() => token)
+        .then(() => token);
 };
 
-// console.log(UserSchema.methods)
+//model methods are hold in 'statics'
+UserSchema.statics.findByToken = function (token) {
+    let User = this;
+    let decoded;
+
+    try {
+        decoded = jwt.verify(token, 'secret123');
+    } catch (e) {
+        return Promise.reject('Wrong token!');
+    }
+
+    //find user in db and return promise
+    return User.findOne({
+        _id: decoded._id,
+        'tokens.token': token,
+        'tokens.access': 'auth'
+    });
+};
 
 //User model
 var UserModel = Mongoose.model('UserModel', UserSchema);
+
 
 module.exports.UserModel = UserModel;

@@ -7,6 +7,7 @@ const { ObjectID } = require('mongodb');
 const { Mongoose } = require('./db/mongoose');
 const { TodoModel } = require('./model/todo-model');
 const { UserModel } = require('./model/user-model');
+const { authenticate } = require('./middleware/authenticate');
 
 var app = express(),
     port = process.env.PORT;
@@ -147,11 +148,33 @@ app.post('/users', (req, res) => {
     // user.generateAuthToken
 
     return user.save()
-                .then(user => {
-                    return user.generateAuthToken();
-                })
-                .then(token => res.status(200).header('x-auth', token).send(user))
-                .catch(e => res.status(400).send(e));
+        .then(user => {
+            return user.generateAuthToken();
+        })
+        .then(token => res.status(200).header('x-auth', token).send(user))
+        .catch(e => res.status(400).send(e));
+});
+
+//custom middleware
+// const authenticate = (req, res, next) => {
+//     const token = req.header('x-auth'); //grabing a token
+
+//     //find in db and check if token is valid
+//     UserModel.findByToken(token)
+//         .then(user => {
+//             if (!user) {
+//                 return Promise.reject('User not found');
+//             }
+//             //add props to req object to use them later
+//             req.user = user;
+//             req.token = token;
+//             next();
+//         })
+//         .catch(e => res.status(401).send(e));
+// };
+
+app.get('/users/me', authenticate, (req, res) => {
+    return res.status(200).send(req.user);
 });
 
 app.listen(port, () => console.log(`Server is running on port ${port}`));
