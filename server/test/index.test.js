@@ -4,18 +4,12 @@ const { ObjectID } = require('mongodb');
 
 const { app } = require('../index');
 const { TodoModel } = require('../model/todo-model');
+const { todos,users, populateTodos, populateUsers } = require('./seed/seed');
 
-//fixtures
-const todos = [
-    { _id: new ObjectID(), text: 'First test todo', completed: false },
-    { _id: new ObjectID(), text: 'Second test todo', completed: true, completedAt: 1231231 }
-];
+beforeEach(populateUsers);
+beforeEach(populateTodos);
 
 describe('POST /todos', () => {
-    beforeEach(done => {
-        TodoModel.remove({})  //wipe db
-            .then(() => done());
-    });
 
     it('should create a new todo', (done) => {
         let text = 'Todo test text',
@@ -36,8 +30,8 @@ describe('POST /todos', () => {
                 //db assertion
                 TodoModel.find()
                     .then((todos) => {
-                        expect(todos.length).toBe(1);
-                        expect(todos[0].text).toBe(text);
+                        expect(todos.length).toBe(3);
+                        expect(todos[2].text).toBe(text);
                         done();
                     })
                     .catch(e => done(e))
@@ -63,7 +57,7 @@ describe('POST /todos', () => {
                 //db asserion
                 TodoModel.find()
                     .then(docs => {
-                        expect(docs.length).toBe(0);
+                        expect(docs.length).toBe(2);
                         done();
                     })
                     .catch(e => done(e))
@@ -72,16 +66,6 @@ describe('POST /todos', () => {
 });
 
 describe('GET /todos', () => {
-    beforeEach(done => {
-        TodoModel.insertMany(todos)
-            .then(() => done());
-    });
-
-    afterEach(done => {
-        TodoModel.remove({})  //wipe db
-            .then(() => done());
-    });
-
     it('should get all todos', done => {
         let url = '/todos';
 
@@ -97,16 +81,6 @@ describe('GET /todos', () => {
 
 describe('GET /todos/:id', () => {
     var url, id;
-
-    beforeEach(done => {
-        TodoModel.insertMany(todos)
-            .then(() => done());
-    });
-
-    afterEach(done => {
-        TodoModel.remove({})  //wipe db
-            .then(() => done());
-    });
 
     it('should return valid todo', done => {
         //Assemble
@@ -129,8 +103,8 @@ describe('GET /todos/:id', () => {
         //Assemble
         url = '/todos';
         //fake invalid ID
-        id = todos[0]._id.toString().replace(id.substring(0,1), 'x');
-        
+        id = todos[0]._id.toString().replace(id.substring(0, 1), 'x');
+
         //Act
         test(app)
             .get(`${url}/${id}`)
@@ -154,17 +128,7 @@ describe('GET /todos/:id', () => {
 
 describe('DELETE /todos/:id', () => {
     var url, id;
-
-    beforeEach(done => {
-        TodoModel.insertMany(todos)
-            .then(() => done());
-    });
-
-    afterEach(done => {
-        TodoModel.remove({})  //wipe db
-            .then(() => done());
-    });
-
+ 
     it('should remove valid todo', done => {
         //Assemble
         url = '/todos';
@@ -184,7 +148,7 @@ describe('DELETE /todos/:id', () => {
                     return done(e);
                 }
                 TodoModel.findById(id)
-                    .then(todo =>{
+                    .then(todo => {
                         expect(todo).toNotExist();
                         done();
                     })
@@ -196,8 +160,8 @@ describe('DELETE /todos/:id', () => {
         //Assemble
         url = '/todos';
         //fake invalid ID
-        id = todos[0]._id.toString().replace(id.substring(0,1), 'x');
-        
+        id = todos[0]._id.toString().replace(id.substring(0, 1), 'x');
+
         //Act
         test(app)
             .delete(`${url}/${id}`)
@@ -220,16 +184,6 @@ describe('DELETE /todos/:id', () => {
 });
 
 describe('PATCH /todos/id', () => {
-    beforeEach(done => {
-        TodoModel.insertMany(todos)
-            .then(() => done());
-    });
-
-    afterEach(done => {
-        TodoModel.remove({})  //wipe db
-            .then(() => done());
-    });
-    
     it('should update the todo', done => {
         //Assemble
         url = '/todos';
