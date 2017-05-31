@@ -46,8 +46,8 @@ UserSchema.methods.generateAuthToken = function () {
     var user = this;
     var access = 'auth';
     var token = jwt.sign({
-       _id: user._id.toHexString(),
-       access 
+        _id: user._id.toHexString(),
+        access
     }, 'secret123').toString();
 
     //add token to user tokens array
@@ -79,6 +79,30 @@ UserSchema.statics.findByToken = function (token) {
     });
 };
 
+UserSchema.statics.findByCredentials = function (email, password) {
+    var User = this;
+
+    return User.findOne({ email })
+        .then(user => {
+            if (!user) {
+                return Promise.reject('User not found!');
+            }
+            //wrap bcrypt in Promise (because it utilizes callback)
+            return new Promise((resolve, reject) => {
+                //compare plainPass with hashedPass
+                bcrypt.compare(password, user.password, (e, result) => {
+                    if (e) {
+                        return reject(e);
+                    }
+                    if (!result) {
+                        return reject('Passwords do not match!');
+                    }
+                    return resolve(user);
+                });
+            });
+        });
+};
+
 //moongose middleware - set event handler before saving user
 UserSchema.pre('save', function (next) {
     var user = this;
@@ -101,4 +125,4 @@ UserSchema.pre('save', function (next) {
 //User model
 var UserModel = Mongoose.model('UserModel', UserSchema);
 
-module.exports = {UserSchema, UserModel};
+module.exports = { UserSchema, UserModel };

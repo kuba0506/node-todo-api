@@ -157,6 +157,25 @@ app.post('/users', (req, res) => {
         .catch(e => res.status(400).send(e));
 });
 
+// POST /users/login {email, password} - find user in db,compare plain pass with hashed one
+app.post('/users/login', (req, res) => {
+    let userCredentials = _.pick(req.body, ['email', 'password']);
+    let user = new UserModel(userCredentials);
+
+    return UserModel.findByCredentials(userCredentials.email, userCredentials.password)
+        .then(user => {
+            return user.generateAuthToken()
+                    .then(token => {
+                        return res.status(200).header('x-auth', token).send(user);
+                    });
+        })
+        .catch(e => {
+            return res.status(400).send(e);
+        });
+
+    // return res.status(200).send(user);
+});
+
 app.get('/users/me', authenticate, (req, res) => {
     return res.status(200).send(req.user);
 });
