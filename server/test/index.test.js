@@ -129,7 +129,7 @@ describe('GET /todos/:id', () => {
 
 describe('DELETE /todos/:id', () => {
     var url, id;
- 
+
     it('should remove valid todo', done => {
         //Assemble
         url = '/todos';
@@ -258,7 +258,7 @@ describe('GET /users/me', () => {
         test(app)
             .get(url)
             .set('x-auth', token)
-        //Assert
+            //Assert
             .expect(200)
             .expect(res => {
                 expect(res.body._id).toBe(user._id.toHexString());
@@ -272,13 +272,13 @@ describe('GET /users/me', () => {
 
     //invalid authentication
     it('should return 401 if not authenticated', done => {
-                //Assemble
+        //Assemble
         let url = '/users/me';
         //Act
         test(app)
             .get(url)
             // .set('x-auth', token)
-        //Assert
+            //Assert
             .expect(401)
             .expect(res => {
                 expect(res.body).toEqual({});
@@ -287,7 +287,7 @@ describe('GET /users/me', () => {
     });
 });
 
-describe.only('POST /users', () => {
+describe('POST /users', () => {
     it('should create a user', done => {
         //assemble
         let email = 'email@mail.com';
@@ -296,8 +296,8 @@ describe.only('POST /users', () => {
         //act
         test(app)
             .post(url)
-            .send({email, password})
-        //assert
+            .send({ email, password })
+            //assert
             .expect(200)
             .expect(res => {
                 expect(res.headers['x-auth']).toExist();
@@ -312,7 +312,7 @@ describe.only('POST /users', () => {
                 }
 
                 //query db
-                UserModel.findOne({email})
+                UserModel.findOne({ email })
                     .then(user => {
                         expect(user.email).toBe(email);
                         return user;
@@ -320,7 +320,8 @@ describe.only('POST /users', () => {
                     .then(user => {
                         expect(user.password).toNotBe(password);
                         done();
-                    });
+                    })
+                    .catch(e => done(e));
             });
     });
     //wrong email or password 
@@ -332,8 +333,8 @@ describe.only('POST /users', () => {
         //act
         test(app)
             .post(url)
-            .send({email, password})
-        //assert
+            .send({ email, password })
+            //assert
             .expect(400)
             .end(done);
     });
@@ -345,12 +346,72 @@ describe.only('POST /users', () => {
         //act
         test(app)
             .post(url)
-            .send({email, password})
-        //assert
+            .send({ email, password })
+            //assert
             .expect(400)
             .expect(res => {
                 expect(res.body.errmsg).toExist();
             })
             .end(done);
+    });
+});
+
+describe('POST /users/login', () => {
+    var url = '/users/login',
+        email = users[1].email,
+        password;
+
+    it('should login user and return token', done => {
+        //Assemble
+        password = users[1].password;
+        //Act
+        test(app)
+            .post(url)
+            .send({ email, password })
+            //Assert
+            .expect(200)
+            .expect(res => {
+                expect(res.headers['x-auth']).toExist();
+            })
+            .end((e, res) => {
+                if (e) {
+                    return done(e);
+                }
+                UserModel.findById(users[1]._id)
+                    .then(user => {
+                        expect(user.tokens[0]).toInclude({
+                            access: 'auth',
+                            token: res.headers['x-auth']
+                        });
+                        done();
+                    })
+                    .catch(e => done(e));
+            });
+    });
+
+    it('should reject invalid login', done => {
+        //Assemble
+        password = 'wrongPassword';
+
+        //Act
+        test(app)
+            .post(url)
+            .send({ email, password })
+        //Assert
+            .expect(400)
+            .expect(res => {
+                expect(res.headers['x-auth']).toNotExist();
+            })
+            .end((e, res) => {
+                if (e) {
+                    return done(e);
+                }
+                UserModel.findById(users[1]._id)
+                    .then(user => {
+                        expect(user.tokens.length).toBe(0);
+                        done();
+                    })
+                    .catch(e => done(e));
+            });
     });
 });

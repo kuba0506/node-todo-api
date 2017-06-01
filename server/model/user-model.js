@@ -90,7 +90,7 @@ UserSchema.statics.findByCredentials = function (email, password) {
             //wrap bcrypt in Promise (because it utilizes callback)
             return new Promise((resolve, reject) => {
                 //compare plainPass with hashedPass
-                bcrypt.compare(password, user.password, (e, result) => {
+                return bcrypt.compare(password, user.password, (e, result) => {
                     if (e) {
                         return reject(e);
                     }

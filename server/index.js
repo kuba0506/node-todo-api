@@ -172,8 +172,6 @@ app.post('/users/login', (req, res) => {
         .catch(e => {
             return res.status(400).send(e);
         });
-
-    // return res.status(200).send(user);
 });
 
 app.get('/users/me', authenticate, (req, res) => {
