@@ -397,7 +397,7 @@ describe('POST /users/login', () => {
         test(app)
             .post(url)
             .send({ email, password })
-        //Assert
+            //Assert
             .expect(400)
             .expect(res => {
                 expect(res.headers['x-auth']).toNotExist();
@@ -407,6 +407,39 @@ describe('POST /users/login', () => {
                     return done(e);
                 }
                 UserModel.findById(users[1]._id)
+                    .then(user => {
+                        expect(user.tokens.length).toBe(0);
+                        done();
+                    })
+                    .catch(e => done(e));
+            });
+    });
+});
+
+describe.only('DELETE /users/me/token', () => {
+    let url;
+    let token;
+
+    it('should remove auth token on logout', done => {
+        //Delete /users/me/token
+        //Set x-auth equal to users[0].tokens[0].token
+        //Find user, verify that tokens array is empty
+
+        //Assemble
+        token = users[0].tokens[0].token;
+        url = '/users/me/token';
+
+        //Act
+        test(app)
+            .delete(url)
+            .set('x-auth', token)
+            //Assert
+            .expect(200)
+            .end((e, res) => {
+                if (e) {
+                    return done(e);
+                }
+                UserModel.findById(users[0]._id)
                     .then(user => {
                         expect(user.tokens.length).toBe(0);
                         done();
