@@ -165,12 +165,22 @@ app.post('/users/login', (req, res) => {
     return UserModel.findByCredentials(userCredentials.email, userCredentials.password)
         .then(user => {
             return user.generateAuthToken()
-                    .then(token => {
-                        return res.status(200).header('x-auth', token).send(user);
-                    });
+                .then(token => {
+                    return res.status(200).header('x-auth', token).send(user);
+                });
         })
         .catch(e => {
             return res.status(400).send(e);
+        });
+});
+
+app.delete('/users/me/token', authenticate, (req, res) => {
+    return req.user.removeToken(req.token)
+        .then(() => {
+            res.send(200).send();
+        })
+        .catch(e => {
+            res.send(400).send();
         });
 });
 
