@@ -20,18 +20,31 @@ const users = [{
     //user without token
     _id: userTwoId,
     email: 'wrongUser@mail.com',
-    password: 'password123'
+    password: 'password123',
+    tokens: [{
+        access: 'auth',
+        token: jwt.sign({ _id: userTwoId, access: 'auth' }, 'secret123').toString()
+    }]
 }];
 
 const todos = [
-    { _id: new ObjectID(), text: 'First test todo', completed: false },
-    { _id: new ObjectID(), text: 'Second test todo', completed: true, completedAt: 1231231 }
+    { _id: new ObjectID(), 
+        text: 'First test todo', 
+        completed: false,
+        _creator: userOneId
+     },
+    { _id: new ObjectID(), 
+        text: 'Second test todo',
+        completed: true,
+        completedAt: 1231231,
+        _creator: userTwoId
+     }
 ];
 
 const populateTodos = done => {
-     TodoModel.remove({})  //wipe db
+    TodoModel.remove({})  //wipe db
         .then(() => {
-           return TodoModel.insertMany(todos);
+            return TodoModel.insertMany(todos);
         })
         .then(() => done());
 };

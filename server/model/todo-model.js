@@ -15,6 +15,10 @@ var TodoModel = Mongoose.model('TodoModel', {
     completedAt: {
         type: Number,
         default: null
+    },
+    _creator: {
+        type: Mongoose.Schema.Types.ObjectId,
+        required: true
     }
 });
 

@@ -15,9 +15,11 @@ var app = express(),
 //ENDPOINTS
 app.use(bodyParser.json());
 
-app.post('/todos', (req, res) => {
+//todos
+app.post('/todos', authenticate, (req, res) => {
     var todo = new TodoModel({
-        text: req.body.text
+        text: req.body.text,
+        _creator: req.user._id
     });
     //db save
     todo.save()
@@ -25,8 +27,10 @@ app.post('/todos', (req, res) => {
         .catch(e => res.status(400).send(e));
 });
 
-app.get('/todos', (req, res) => {
-    TodoModel.find()
+app.get('/todos', authenticate, (req, res) => {
+    TodoModel.find({
+        _creator: req.user._id
+    })
         .then(docs => res.status(200).send({
             data: docs
         }))
@@ -36,7 +40,7 @@ app.get('/todos', (req, res) => {
 });
 
 // ObjectId("58ec99b83f48890a683a50a6")
-app.get('/todos/:id', (req, res) => {
+app.get('/todos/:id', authenticate, (req, res) => {
     let id = req.params.id;
 
     //check if ID is valid
@@ -50,7 +54,11 @@ app.get('/todos/:id', (req, res) => {
     }
 
     //query db
-    TodoModel.findById(id)
+    //findOne - prevent to see data by unauthorised user
+    TodoModel.findOne({
+        _id: id,
+        _creator: req.user._id
+    })
         .then(doc => {
             //check if doc was found
             if (!doc) {
@@ -73,7 +81,7 @@ app.get('/todos/:id', (req, res) => {
 });
 
 //remove
-app.delete('/todos/:id', (req, res) => {
+app.delete('/todos/:id', authenticate, (req, res) => {
     let id = req.params.id;
 
     //validate id -> send 404
@@ -84,7 +92,12 @@ app.delete('/todos/:id', (req, res) => {
     }
 
     //removeById
-    TodoModel.findByIdAndRemove(id)
+    //findByIdAndRemove
+    //findOneAndRemove
+    TodoModel.findOneAndRemove({
+        _id: id,
+        _creator: req.user._id
+    })
         //success
         .then(todo => {
             //check if todo was found
@@ -109,7 +122,7 @@ app.delete('/todos/:id', (req, res) => {
 });
 
 //update 
-app.patch('/todos/:id', (req, res) => {
+app.patch('/todos/:id', authenticate, (req, res) => {
     let id = req.params.id,
         body = _.pick(req.body, ['text', 'completed']); // pick extract only valid props
 
@@ -128,7 +141,12 @@ app.patch('/todos/:id', (req, res) => {
         body.completedAt = null;
     }
     //update todo
-    TodoModel.findByIdAndUpdate(id, { $set: body }, { new: true })
+    //findByIdAndUpdate
+    //findOneAndUpdate
+    TodoModel.findOneAndUpdate({
+        _id: id,
+        _creator: req.user._id
+    }, { $set: body }, { new: true })
         .then(todo => {
             if (!todo) {
                 return res.status(404).send({ error: `Todo ${id} was not found` });

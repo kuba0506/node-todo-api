@@ -10,6 +10,7 @@ const { todos, users, populateTodos, populateUsers } = require('./seed/seed');
 beforeEach(populateUsers);
 beforeEach(populateTodos);
 
+//todos
 describe('POST /todos', () => {
 
     it('should create a new todo', (done) => {
@@ -18,6 +19,7 @@ describe('POST /todos', () => {
 
         test(app)
             .post(url)
+            .set('x-auth', users[0].tokens[0].token)
             .send({ text })
             .expect(200)
             .expect((res) => {
@@ -45,6 +47,7 @@ describe('POST /todos', () => {
 
         test(app)
             .post(url)
+            .set('x-auth', users[0].tokens[0].token)
             .send({ text })
             .expect(400)
             .expect(res => {
@@ -72,9 +75,10 @@ describe('GET /todos', () => {
 
         test(app)
             .get(url)
+            .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect(res => {
-                expect(res.body.data.length).toBe(2);
+                expect(res.body.data.length).toBe(1);
             })
             .end(done);
     })
@@ -91,12 +95,26 @@ describe('GET /todos/:id', () => {
         //Act
         test(app)
             .get(`${url}/${id}`)
+            .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect(res => {
                 //Assert
-                expect(res.body.data.text).toBe(todos[0].text);
+                // expect(res.body.data.text).toBe(todos[0].text);
                 expect(res.body.data._id).toBe(id);
             })
+            .end(done);
+    });
+
+    it('should not return todo created by other user', done => {
+        //Assemble
+        url = '/todos';
+        id = todos[1]._id.toString();
+
+        //Act
+        test(app)
+            .get(`${url}/${id}`)
+            .set('x-auth', users[0].tokens[0].token)
+            .expect(404)
             .end(done);
     });
 
@@ -109,6 +127,7 @@ describe('GET /todos/:id', () => {
         //Act
         test(app)
             .get(`${url}/${id}`)
+            .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -122,6 +141,7 @@ describe('GET /todos/:id', () => {
         //Act
         test(app)
             .get(`${url}/${id}`)
+            .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -138,6 +158,7 @@ describe('DELETE /todos/:id', () => {
         //Act
         test(app)
             .delete(`${url}/${id}`)
+            .set('x-auth', users[1].tokens[0].token)
             .expect(200)
             .expect(res => {
                 //Assert
@@ -157,15 +178,39 @@ describe('DELETE /todos/:id', () => {
             });
     });
 
-    it('should return 404 when todo not found', done => {
+    it('should not remove todo created by other user', done => {
         //Assemble
         url = '/todos';
-        //fake invalid ID
-        id = todos[0]._id.toString().replace(id.substring(0, 1), 'x');
+        id = todos[1]._id.toString();
 
         //Act
         test(app)
             .delete(`${url}/${id}`)
+            .set('x-auth', users[0].tokens[0].token)
+            .expect(404)
+            .end((e, res) => {
+                if (e) {
+                    return done(e);
+                }
+                TodoModel.findById(id)
+                    .then(todo => {
+                        expect(todo).toExist();
+                        done();
+                    })
+                    .catch(done);
+            });
+    });
+
+    it('should return 404 when todo not found', done => {
+        //Assemble
+        url = '/todos';
+        //fake invalid ID
+        id = todos[1]._id.toString().replace(id.substring(0, 1), 'x');
+
+        //Act
+        test(app)
+            .delete(`${url}/${id}`)
+            .set('x-auth', users[1].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -179,12 +224,13 @@ describe('DELETE /todos/:id', () => {
         //Act
         test(app)
             .delete(`${url}/${id}`)
+            .set('x-auth', users[1].tokens[0].token)
             .expect(404)
             .end(done);
     });
 });
 
-describe('PATCH /todos/id', () => {
+describe.only('PATCH /todos/id', () => {
     it('should update the todo', done => {
         //Assemble
         url = '/todos';
@@ -196,6 +242,7 @@ describe('PATCH /todos/id', () => {
         //Act
         test(app)
             .patch(`${url}/${id}`)
+            .set('x-auth', users[0].tokens[0].token)
             .send(payload)
             //Assert
             .expect(200)
@@ -205,6 +252,24 @@ describe('PATCH /todos/id', () => {
                 expect(todo.body.data.text).toEqual(payload.text);
                 expect(todo.body.data.text).toEqual(payload.text);
             })
+            .end(done);
+    });
+
+    it('should not update the todo created by other user', done => {
+        //Assemble
+        url = '/todos';
+        id = todos[1]._id.toString();
+        let payload = {
+            text: "Change first",
+            completed: true
+        };
+        //Act
+        test(app)
+            .patch(`${url}/${id}`)
+            .set('x-auth', users[0].tokens[0].token)
+            .send(payload)
+            //Assert
+            .expect(404)
             .end(done);
     });
     it('should clear completedAt when completed is set to false', done => {
@@ -219,6 +284,7 @@ describe('PATCH /todos/id', () => {
         test(app)
             .patch(`${url}/${id}`)
             .send(payload)
+            .set('x-auth', users[1].tokens[0].token)
             //Assert
             .expect(200)
             .expect(todo => {
@@ -240,6 +306,7 @@ describe('PATCH /todos/id', () => {
         //Act
         test(app)
             .patch(`${url}/${id}`)
+            .set('x-auth', users[1].tokens[0].token)
             .send(payload)
             //Assert
             .expect(404)
@@ -247,6 +314,7 @@ describe('PATCH /todos/id', () => {
     });
 });
 
+//users
 describe('GET /users/me', () => {
     //valid authentication
     it('should return user if authenticated', done => {
@@ -364,6 +432,7 @@ describe('POST /users/login', () => {
     it('should login user and return token', done => {
         //Assemble
         password = users[1].password;
+        email = users[1].email;
         //Act
         test(app)
             .post(url)
@@ -379,7 +448,7 @@ describe('POST /users/login', () => {
                 }
                 UserModel.findById(users[1]._id)
                     .then(user => {
-                        expect(user.tokens[0]).toInclude({
+                        expect(user.tokens[1]).toInclude({
                             access: 'auth',
                             token: res.headers['x-auth']
                         });
@@ -408,7 +477,7 @@ describe('POST /users/login', () => {
                 }
                 UserModel.findById(users[1]._id)
                     .then(user => {
-                        expect(user.tokens.length).toBe(0);
+                        expect(user.tokens.length).toBe(1);
                         done();
                     })
                     .catch(e => done(e));
@@ -416,7 +485,7 @@ describe('POST /users/login', () => {
     });
 });
 
-describe.only('DELETE /users/me/token', () => {
+describe('DELETE /users/me/token', () => {
     let url;
     let token;
 
