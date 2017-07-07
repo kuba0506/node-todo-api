@@ -1,4 +1,4 @@
-require('./config/config');
+require('./config/config.js');
 const express = require('express');
 const bodyParser = require('body-parser');
 const _ = require('lodash');
@@ -16,190 +16,188 @@ var app = express(),
 app.use(bodyParser.json());
 
 //todos
-app.post('/todos', authenticate, (req, res) => {
-    var todo = new TodoModel({
-        text: req.body.text,
-        _creator: req.user._id
-    });
-    //db save
-    todo.save()
-        .then(doc => res.send(doc))
-        .catch(e => res.status(400).send(e));
+app.post('/todos', authenticate, async (req, res) => {
+    try {
+        const todo = new TodoModel({
+            text: req.body.text,
+            _creator: req.user._id
+        });
+        const doc = await todo.save();
+
+        if (doc) {
+            return res.send(doc);
+        }
+    } catch (e) {
+        return res.status(400).send(e);
+    }
 });
 
-app.get('/todos', authenticate, (req, res) => {
-    TodoModel.find({
-        _creator: req.user._id
-    })
-        .then(docs => res.status(200).send({
-            data: docs
-        }))
-        .catch(e => res.status(400).send({
+app.get('/todos', authenticate, async (req, res) => {
+    try {
+        const docs = await TodoModel.find({
+            _creator: req.user._id
+        });
+        if (docs) {
+            return res.status(200).send({
+                data: docs
+            })
+        }
+    } catch (e) {
+        return res.status(400).send({
             error: e
-        }));
+        })
+    }
 });
 
 // ObjectId("58ec99b83f48890a683a50a6")
-app.get('/todos/:id', authenticate, (req, res) => {
-    let id = req.params.id;
+app.get('/todos/:id', authenticate, async (req, res) => {
+    try {
+        const id = req.params.id;
 
-    //check if ID is valid
-    if (!ObjectID.isValid(id)) {
-        return res.status(404).send({
-            error: {
-                id: id,
-                msg: `Todo is not valid`
-            }
-        });
-    }
-
-    //query db
-    //findOne - prevent to see data by unauthorised user
-    TodoModel.findOne({
-        _id: id,
-        _creator: req.user._id
-    })
-        .then(doc => {
-            //check if doc was found
-            if (!doc) {
-                return res.status(404).send({
-                    error: {
-                        msg: `Todo ID ${id} was not found`
-                    }
-                });
-            }
-
-            return res.status(200).send({
-                data: doc
+        //check if ID is valid
+        if (!ObjectID.isValid(id)) {
+            return res.status(404).send({
+                error: {
+                    id: id,
+                    msg: `Todo is not valid`
+                }
             });
-        })
-        .catch(e => res.status(400).send({
+        }
+
+        //findOne - prevent to see data by unauthorised user
+        const doc = await TodoModel.findOne({
+            _id: id,
+            _creator: req.user._id
+        });
+
+        if (!doc) {
+            return res.status(404).send({
+                error: {
+                    msg: `Todo ID ${id} was not found`
+                }
+            });
+        }
+
+        return res.status(200).send({
+            data: doc
+        });
+    } catch (e) {
+        return res.status(400).send({
             error: {
                 msg: `Error in db!`
             }
-        }));
+        })
+    }
 });
 
+//async await
 //remove
-app.delete('/todos/:id', authenticate, (req, res) => {
-    let id = req.params.id;
+app.delete('/todos/:id', authenticate, async (req, res) => {
+    try {
+        const id = req.params.id;
 
-    //validate id -> send 404
-    if (!ObjectID.isValid(id)) {
-        return res.status(404).send({
-            error: `Todo ${id} is not valid`
+        //validate id -> send 404
+        if (!ObjectID.isValid(id)) {
+            return res.status(404).send({
+                error: `Todo ${id} is not valid`
+            });
+        }
+
+        const todo = await TodoModel.findOneAndRemove({
+            _id: id,
+            _creator: req.user._id
+        });
+        //check if todo was found
+        if (!todo) {
+            // if noc doc -> 404
+            return res.status(404).send({
+                error: `Todo was not found!`
+            });
+        }
+
+        return res.status(200).send({
+            data: todo
+        });
+    } catch (e) {
+        return res.status(400).send({
+            error: `Db error!`
         });
     }
-
-    //removeById
-    //findByIdAndRemove
-    //findOneAndRemove
-    TodoModel.findOneAndRemove({
-        _id: id,
-        _creator: req.user._id
-    })
-        //success
-        .then(todo => {
-            //check if todo was found
-            if (!todo) {
-                // if noc doc -> 404
-                return res.status(404).send({
-                    error: `Todo was not found!`
-                });
-            }
-
-            //if doc -> send 200
-            return res.status(200).send({
-                data: todo
-            });
-        })
-        //error -> send 400, empty body
-        .catch(e => {
-            return res.status(400).send({
-                error: `Db error!`
-            });
-        })
 });
 
 //update 
-app.patch('/todos/:id', authenticate, (req, res) => {
-    let id = req.params.id,
-        body = _.pick(req.body, ['text', 'completed']); // pick extract only valid props
+app.patch('/todos/:id', authenticate, async (req, res) => {
+    try {
+        const id = req.params.id;
+        let body = _.pick(req.body, ['text', 'completed']); // pick extract only valid props
 
-    //validate id -> send 404
-    if (!ObjectID.isValid(id)) {
-        return res.status(404).send({
-            error: `Todo ${id} is not valid`
-        });
-    }
+        //validate id -> send 404
+        if (!ObjectID.isValid(id)) {
+            return res.status(404).send({
+                error: `Todo ${id} is not valid`
+            });
+        }
 
-    //check if completed
-    if (_.isBoolean(body.completed) && body.completed) {
-        body.completedAt = +new Date(); //timestamps
-    } else {
-        body.completed = false;
-        body.completedAt = null;
+        //check if completed
+        if (_.isBoolean(body.completed) && body.completed) {
+            body.completedAt = +new Date(); //timestamps
+        } else {
+            body.completed = false;
+            body.completedAt = null;
+        }
+
+        const todo = await TodoModel.findOneAndUpdate({
+            _id: id,
+            _creator: req.user._id
+        }, { $set: body }, { new: true });
+
+        if (!todo) {
+            return res.status(404).send({ error: `Todo ${id} was not found` });
+        }
+
+        return res.status(200).send({ data: todo })
+    } catch (e) {
+        return res.status(400).send();
     }
-    //update todo
-    //findByIdAndUpdate
-    //findOneAndUpdate
-    TodoModel.findOneAndUpdate({
-        _id: id,
-        _creator: req.user._id
-    }, { $set: body }, { new: true })
-        .then(todo => {
-            if (!todo) {
-                return res.status(404).send({ error: `Todo ${id} was not found` });
-            }
-            return res.status(200).send({ data: todo })
-        })
-        .catch(e => res.status(400).send());
 });
 
 // POST /users
-app.post('/users', (req, res) => {
-    let userCredentials = _.pick(req.body, ['email', 'password']);
-    let user = new UserModel(userCredentials);
+app.post('/users', async (req, res) => {
+    try {
+        const userCredentials = _.pick(req.body, ['email', 'password']);
+        const user = new UserModel(userCredentials);
 
-    //User //model
-    //user //instance
-    // user.generateAuthToken
-    //1. hash password
-    //2. generate token
+        const userData = await user.save();
+        const token = await userData.generateAuthToken();
 
-    return user.save()
-        .then(user => {
-            return user.generateAuthToken();
-        })
-        .then(token => res.status(200).header('x-auth', token).send(user))
-        .catch(e => res.status(400).send(e));
+        return res.status(200).header('x-auth', token).send(userData)
+    } catch (e) {
+        return res.status(400).send(e);
+    }
 });
 
 // POST /users/login {email, password} - find user in db,compare plain pass with hashed one
-app.post('/users/login', (req, res) => {
-    let userCredentials = _.pick(req.body, ['email', 'password']);
-    let user = new UserModel(userCredentials);
+app.post('/users/login', async (req, res) => {
+    try {
+        const userCredentials = _.pick(req.body, ['email', 'password']);
+        const user = new UserModel(userCredentials);
 
-    return UserModel.findByCredentials(userCredentials.email, userCredentials.password)
-        .then(user => {
-            return user.generateAuthToken()
-                .then(token => {
-                    return res.status(200).header('x-auth', token).send(user);
-                });
-        })
-        .catch(e => {
-            return res.status(400).send(e);
-        });
+        const userData = await UserModel.findByCredentials(userCredentials.email, userCredentials.password);
+        const token = await userData.generateAuthToken();
+
+        return res.status(200).header('x-auth', token).send(userData);
+    } catch (e) {
+        return res.status(400).send(e);
+    }
 });
 
-app.delete('/users/me/token', authenticate, (req, res) => {
-    return req.user.removeToken(req.token)
-        .then(() => {
-            res.send(200).send();
-        })
-        .catch(e => {
-            res.send(400).send();
-        });
+app.delete('/users/me/token', authenticate, async (req, res) => {
+    try {
+        await req.user.removeToken(req.token);
+        res.send(200).send();
+    } catch (e) {
+        res.send(400).send();
+    }
 });
 
 app.get('/users/me', authenticate, (req, res) => {
@@ -210,14 +208,3 @@ app.listen(port, () => console.log(`Server is running on port ${port}`));
 
 //es6 syntax
 module.exports = { app };
-
-// module.exports.app = app;
-// module.exports = {
-//     app: app
-// };
-
-// module.exports = {
-//     app
-// };
-
-

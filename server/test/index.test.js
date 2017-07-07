@@ -230,7 +230,7 @@ describe('DELETE /todos/:id', () => {
     });
 });
 
-describe.only('PATCH /todos/id', () => {
+describe('PATCH /todos/id', () => {
     it('should update the todo', done => {
         //Assemble
         url = '/todos';
